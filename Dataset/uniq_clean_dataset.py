@@ -10,101 +10,142 @@ import ast
 # /-------------------------------------------- make_dataset_coherent -------------------------------------------------/
 # Funzione che prende in input il dataset csv e verifica se nel testo ci sono dei placeholders (tra i nostri) non ancora sostituiti.
 # In caso affermativo sostituisce il placeholders con uno dei possibili valori che gli abbiamo passato in "options"
-# Per tutti i placeholders le sostituzioni sono fatte in modo randomico tranne per <author_clinical_condition>
-# Se è quello il placeholders da sostituire si cerca di dare un minimo di coerenza in base alle parole che compaiono nel testo
+# Per tutti i placeholders le sostituzioni sono fatte in modo randomico.
 
 def make_dataset_coherent(filename: str, outputfile: str):
-
     df = pd.read_csv(filename)
     options = {
-        "<author_clinical_condition>": ['Hypotension', 'Ischemic heart disease', 'Myocardial infarction', 'Angina pectoris', 'Cardiac arrhythmias',
-                                        'Atrial fibrillation', 'Tachycardia', 'Bradycardia', 'Heart failure', 'Cardiomyopathy', 'Myocarditis',
-                                        'Pericarditis', 'Endocarditis', 'Mitral valve disease', 'Aortic stenosis', 'Aortic regurgitation', 'Aortic aneurysm',
-                                        'Deep vein thrombosis', 'Pulmonary embolism', 'Varicose veins', 'Peripheral arterial disease', 'Intermittent claudication',
-                                        'Raynaud\'s phenomenon', 'Phlebitis', 'Hypercholesterolemia', 'Dyslipidemia', 'Atherosclerosis', 'Bronchial asthma',
-                                        'Chronic obstructive pulmonary disease', 'Pulmonary emphysema', 'Chronic bronchitis', 'Acute bronchitis', 'Pneumonia',
-                                        'Pleurisy', 'Pneumothorax', 'Pleural effusion', 'Pulmonary fibrosis', 'Sarcoidosis', 'Sleep apnea',
-                                        'Obstructive sleep apnea syndrome', 'Allergic rhinitis', 'Sinusitis', 'Pharyngitis', 'Laryngitis', 'Tonsillitis',
-                                        'Bronchiectasis', 'Pulmonary tuberculosis', 'Silicosis', 'Asbestosis', 'Gastritis', 'Gastric ulcer', 'Duodenal ulcer',
-                                        'Gastroesophageal reflux disease', 'Esophagitis', 'Irritable bowel syndrome', 'Crohn\'s disease',
-                                        'Ulcerative colitis', 'Diverticulitis', 'Diverticulosis', 'Hemorrhoids', 'Anal fissures', 'Chronic constipation',
-                                        'Chronic diarrhea', 'Malabsorption', 'Celiac disease', 'Lactose intolerance', 'Gastroenteritis', 'Pancreatitis',
-                                        'Gallstones', 'Cholecystitis', 'Hepatitis A', 'Hepatitis B', 'Hepatitis C', 'Liver cirrhosis', 'Fatty liver disease',
-                                        'Intestinal polyposis', 'Type 1 diabetes mellitus', 'Type 2 diabetes mellitus', 'Gestational diabetes', 'Hypoglycemia',
-                                        'Hyperglycemia', 'Hypothyroidism', 'Hyperthyroidism', 'Hashimoto\'s thyroiditis', 'Goiter', 'Thyroid nodules',
-                                        'Graves\' disease', 'Adrenal insufficiency', 'Cushing\'s syndrome', 'Addison\'s disease', 'Hyperaldosteronism',
-                                        'Pheochromocytoma', 'Hypoparathyroidism', 'Hyperparathyroidism', 'Osteoporosis', 'Osteomalacia', 'Polycystic ovary syndrome',
-                                        'Hypogonadism', 'Hypergonadism', 'Acromegaly', 'Pituitary dwarfism', 'Diabetes insipidus', 'Migraine',
-                                        'Tension headache', 'Cluster headache', 'Epilepsy', 'Parkinson\'s disease', 'Essential tremor', 'Multiple sclerosis',
-                                        'Amyotrophic lateral sclerosis', 'Alzheimer\'s disease', 'Vascular dementia', 'Senile dementia', 'Ischemic stroke',
-                                        'Hemorrhagic stroke', 'Transient ischemic attack', 'Diabetic neuropathy', 'Peripheral neuropathy', 'Trigeminal neuralgia',
-                                        'Facial nerve palsy', 'Carpal tunnel syndrome', 'Herniated disc', 'Cervical spondylosis', 'Low back pain', 'Sciatica',
-                                        'Meningitis', 'Encephalitis', 'Myasthenia gravis', 'Rheumatoid arthritis', 'Osteoarthritis', 'Psoriatic arthritis',
-                                        'Ankylosing spondylitis', 'Gout', 'Pseudogout', 'Fibromyalgia', 'Polymyalgia rheumatica', 'Systemic lupus erythematosus',
-                                        'Sjögren\'s syndrome', 'Scleroderma', 'Dermatomyositis', 'Polymyositis', 'Bursitis', 'Tendinitis', 'Epicondylitis',
-                                        'Rotator cuff syndrome', 'Sprain', 'Contusion', 'Fracture', 'Dislocation', 'Muscle strain', 'Muscle cramps', 'Myositis',
-                                        'Scoliosis', 'Kyphosis', 'Lordosis', 'Cystitis', 'Urethritis', 'Pyelonephritis', 'Glomerulonephritis', 'Chronic kidney disease',
-                                        'Acute kidney injury', 'Kidney stones', 'Benign prostatic hyperplasia', 'Prostatitis', 'Prostate cancer', 'Erectile dysfunction',
-                                        'Urinary incontinence', 'Urinary retention', 'Hematuria', 'Proteinuria', 'Nephrotic syndrome', 'Nephritic syndrome',
-                                        'Polycystic kidney disease', 'Endometriosis', 'Uterine fibroids', 'Ovarian cysts', 'Vaginitis', 'Cervicitis', 'Dysmenorrhea',
-                                        'Amenorrhea', 'Atopic dermatitis', 'Contact dermatitis', 'Seborrheic dermatitis', 'Psoriasis', 'Eczema', 'Hives', 'Acne',
-                                        'Rosacea', 'Melasma', 'Actinic keratosis', 'Herpes simplex', 'Herpes zoster', 'Chickenpox', 'Molluscum contagiosum', 'Warts',
-                                        'Cutaneous mycoses', 'Cutaneous candidiasis', 'Impetigo', 'Cellulitis', 'Folliculitis', 'Alopecia', 'Hirsutism', 'Melanoma',
-                                        'Basal cell carcinoma', 'Squamous cell carcinoma', 'Keloids', 'Hypertrophic scars', 'Iron deficiency anemia',
-                                        'Megaloblastic anemia', 'Hemolytic anemia', 'Aplastic anemia', 'Sickle cell anemia', 'Thalassemia', 'Acute leukemia',
-                                        'Chronic leukemia', 'Hodgkin\'s lymphoma', 'Non-Hodgkin\'s lymphoma', 'Multiple myeloma', 'Thrombocytopenia',
-                                        'Thrombocytosis', 'Immune thrombocytopenic purpura', 'Hemophilia', 'von Willebrand disease',
-                                        'Disseminated intravascular coagulation', 'Polycythemia vera', 'Myelofibrosis', 'Myelodysplastic syndrome',
-                                        'Food allergies', 'Respiratory allergies', 'Drug allergies', 'Anaphylaxis', 'Primary immunodeficiency',
-                                        'Secondary immunodeficiency', 'Autoimmune diseases', 'Vasculitis', 'Antiphospholipid syndrome', 'Behçet\'s disease',
-                                        'Acquired immunodeficiency syndrome', 'Major depressive disorder', 'Bipolar disorder', 'Generalized anxiety disorder',
-                                        'Panic disorder', 'Obsessive-compulsive disorder', 'Post-traumatic stress disorder', 'Social anxiety disorder',
-                                        'Agoraphobia', 'Specific phobias', 'Borderline personality disorder', 'Narcissistic personality disorder',
-                                        'Antisocial personality disorder', 'Schizophrenia', 'Schizoaffective disorder', 'Delusional disorder',
-                                        'Attention-deficit/hyperactivity disorder', 'Autism spectrum disorders', 'Sleep disorders', 'Insomnia',
-                                        'Eating disorders', 'Anorexia nervosa', 'Bulimia nervosa', 'Binge-eating disorder', 'Bronchiolitis',
-                                        'Acute laryngitis', 'Otitis media', 'Pharyngotonsillitis', 'Acute gastroenteritis', 'Pediatric asthma',
-                                        'Pediatric gastroesophageal reflux', 'Infantile colic', 'Functional constipation', 'Nocturnal enuresis',
-                                        'Recurrent fever', 'Febrile seizures', 'Infantile epilepsy', 'Neurodevelopmental disorders', 'Psychomotor retardation',
-                                        'Learning disorders', 'Behavioral disorders', 'Fragility fractures', 'Sarcopenia', 'Cachexia', 'Malnutrition in the elderly',
+        "<author_clinical_condition>": ['Hypotension', 'Ischemic heart disease', 'Myocardial infarction',
+                                        'Angina pectoris', 'Cardiac arrhythmias',
+                                        'Atrial fibrillation', 'Tachycardia', 'Bradycardia', 'Heart failure',
+                                        'Cardiomyopathy', 'Myocarditis',
+                                        'Pericarditis', 'Endocarditis', 'Mitral valve disease', 'Aortic stenosis',
+                                        'Aortic regurgitation', 'Aortic aneurysm',
+                                        'Deep vein thrombosis', 'Pulmonary embolism', 'Varicose veins',
+                                        'Peripheral arterial disease', 'Intermittent claudication',
+                                        'Raynaud\'s phenomenon', 'Phlebitis', 'Hypercholesterolemia', 'Dyslipidemia',
+                                        'Atherosclerosis', 'Bronchial asthma',
+                                        'Chronic obstructive pulmonary disease', 'Pulmonary emphysema',
+                                        'Chronic bronchitis', 'Acute bronchitis', 'Pneumonia',
+                                        'Pleurisy', 'Pneumothorax', 'Pleural effusion', 'Pulmonary fibrosis',
+                                        'Sarcoidosis', 'Sleep apnea',
+                                        'Obstructive sleep apnea syndrome', 'Allergic rhinitis', 'Sinusitis',
+                                        'Pharyngitis', 'Laryngitis', 'Tonsillitis',
+                                        'Bronchiectasis', 'Pulmonary tuberculosis', 'Silicosis', 'Asbestosis',
+                                        'Gastritis', 'Gastric ulcer', 'Duodenal ulcer',
+                                        'Gastroesophageal reflux disease', 'Esophagitis', 'Irritable bowel syndrome',
+                                        'Crohn\'s disease',
+                                        'Ulcerative colitis', 'Diverticulitis', 'Diverticulosis', 'Hemorrhoids',
+                                        'Anal fissures', 'Chronic constipation',
+                                        'Chronic diarrhea', 'Malabsorption', 'Celiac disease', 'Lactose intolerance',
+                                        'Gastroenteritis', 'Pancreatitis',
+                                        'Gallstones', 'Cholecystitis', 'Hepatitis A', 'Hepatitis B', 'Hepatitis C',
+                                        'Liver cirrhosis', 'Fatty liver disease',
+                                        'Intestinal polyposis', 'Type 1 diabetes mellitus', 'Type 2 diabetes mellitus',
+                                        'Gestational diabetes', 'Hypoglycemia',
+                                        'Hyperglycemia', 'Hypothyroidism', 'Hyperthyroidism',
+                                        'Hashimoto\'s thyroiditis', 'Goiter', 'Thyroid nodules',
+                                        'Graves\' disease', 'Adrenal insufficiency', 'Cushing\'s syndrome',
+                                        'Addison\'s disease', 'Hyperaldosteronism',
+                                        'Pheochromocytoma', 'Hypoparathyroidism', 'Hyperparathyroidism', 'Osteoporosis',
+                                        'Osteomalacia', 'Polycystic ovary syndrome',
+                                        'Hypogonadism', 'Hypergonadism', 'Acromegaly', 'Pituitary dwarfism',
+                                        'Diabetes insipidus', 'Migraine',
+                                        'Tension headache', 'Cluster headache', 'Epilepsy', 'Parkinson\'s disease',
+                                        'Essential tremor', 'Multiple sclerosis',
+                                        'Amyotrophic lateral sclerosis', 'Alzheimer\'s disease', 'Vascular dementia',
+                                        'Senile dementia', 'Ischemic stroke',
+                                        'Hemorrhagic stroke', 'Transient ischemic attack', 'Diabetic neuropathy',
+                                        'Peripheral neuropathy', 'Trigeminal neuralgia',
+                                        'Facial nerve palsy', 'Carpal tunnel syndrome', 'Herniated disc',
+                                        'Cervical spondylosis', 'Low back pain', 'Sciatica',
+                                        'Meningitis', 'Encephalitis', 'Myasthenia gravis', 'Rheumatoid arthritis',
+                                        'Osteoarthritis', 'Psoriatic arthritis',
+                                        'Ankylosing spondylitis', 'Gout', 'Pseudogout', 'Fibromyalgia',
+                                        'Polymyalgia rheumatica', 'Systemic lupus erythematosus',
+                                        'Sjögren\'s syndrome', 'Scleroderma', 'Dermatomyositis', 'Polymyositis',
+                                        'Bursitis', 'Tendinitis', 'Epicondylitis',
+                                        'Rotator cuff syndrome', 'Sprain', 'Contusion', 'Fracture', 'Dislocation',
+                                        'Muscle strain', 'Muscle cramps', 'Myositis',
+                                        'Scoliosis', 'Kyphosis', 'Lordosis', 'Cystitis', 'Urethritis', 'Pyelonephritis',
+                                        'Glomerulonephritis', 'Chronic kidney disease',
+                                        'Acute kidney injury', 'Kidney stones', 'Benign prostatic hyperplasia',
+                                        'Prostatitis', 'Prostate cancer', 'Erectile dysfunction',
+                                        'Urinary incontinence', 'Urinary retention', 'Hematuria', 'Proteinuria',
+                                        'Nephrotic syndrome', 'Nephritic syndrome',
+                                        'Polycystic kidney disease', 'Endometriosis', 'Uterine fibroids',
+                                        'Ovarian cysts', 'Vaginitis', 'Cervicitis', 'Dysmenorrhea',
+                                        'Amenorrhea', 'Atopic dermatitis', 'Contact dermatitis',
+                                        'Seborrheic dermatitis', 'Psoriasis', 'Eczema', 'Hives', 'Acne',
+                                        'Rosacea', 'Melasma', 'Actinic keratosis', 'Herpes simplex', 'Herpes zoster',
+                                        'Chickenpox', 'Molluscum contagiosum', 'Warts',
+                                        'Cutaneous mycoses', 'Cutaneous candidiasis', 'Impetigo', 'Cellulitis',
+                                        'Folliculitis', 'Alopecia', 'Hirsutism', 'Melanoma',
+                                        'Basal cell carcinoma', 'Squamous cell carcinoma', 'Keloids',
+                                        'Hypertrophic scars', 'Iron deficiency anemia',
+                                        'Megaloblastic anemia', 'Hemolytic anemia', 'Aplastic anemia',
+                                        'Sickle cell anemia', 'Thalassemia', 'Acute leukemia',
+                                        'Chronic leukemia', 'Hodgkin\'s lymphoma', 'Non-Hodgkin\'s lymphoma',
+                                        'Multiple myeloma', 'Thrombocytopenia',
+                                        'Thrombocytosis', 'Immune thrombocytopenic purpura', 'Hemophilia',
+                                        'von Willebrand disease',
+                                        'Disseminated intravascular coagulation', 'Polycythemia vera', 'Myelofibrosis',
+                                        'Myelodysplastic syndrome',
+                                        'Food allergies', 'Respiratory allergies', 'Drug allergies', 'Anaphylaxis',
+                                        'Primary immunodeficiency',
+                                        'Secondary immunodeficiency', 'Autoimmune diseases', 'Vasculitis',
+                                        'Antiphospholipid syndrome', 'Behçet\'s disease',
+                                        'Acquired immunodeficiency syndrome', 'Major depressive disorder',
+                                        'Bipolar disorder', 'Generalized anxiety disorder',
+                                        'Panic disorder', 'Obsessive-compulsive disorder',
+                                        'Post-traumatic stress disorder', 'Social anxiety disorder',
+                                        'Agoraphobia', 'Specific phobias', 'Borderline personality disorder',
+                                        'Narcissistic personality disorder',
+                                        'Antisocial personality disorder', 'Schizophrenia', 'Schizoaffective disorder',
+                                        'Delusional disorder',
+                                        'Attention-deficit/hyperactivity disorder', 'Autism spectrum disorders',
+                                        'Sleep disorders', 'Insomnia',
+                                        'Eating disorders', 'Anorexia nervosa', 'Bulimia nervosa',
+                                        'Binge-eating disorder', 'Bronchiolitis',
+                                        'Acute laryngitis', 'Otitis media', 'Pharyngotonsillitis',
+                                        'Acute gastroenteritis', 'Pediatric asthma',
+                                        'Pediatric gastroesophageal reflux', 'Infantile colic',
+                                        'Functional constipation', 'Nocturnal enuresis',
+                                        'Recurrent fever', 'Febrile seizures', 'Infantile epilepsy',
+                                        'Neurodevelopmental disorders', 'Psychomotor retardation',
+                                        'Learning disorders', 'Behavioral disorders', 'Fragility fractures',
+                                        'Sarcopenia', 'Cachexia', 'Malnutrition in the elderly',
                                         'Immobilization syndrome', 'Pressure ulcers', 'Polypharmacy', 'Delirium'],
-        "<author_medical_report>": ['Blood test results', 'Urine analysis', 'X-ray report', 'MRI scan', 'CT scan', 'Ultrasound report', 'ECG report',
-                                    'Echocardiogram', 'Biopsy results', 'Pathology report', 'Lab culture results', 'Genetic test results',
-                                    'Allergy test panel', 'Hormone levels', 'Cholesterol panel', 'Liver function tests', 'Kidney function tests',
-                                    'Thyroid function tests', 'Cardiac stress test', 'Pulmonary function test', 'Bone density scan',
-                                    'Colonoscopy report', 'Endoscopy report', 'Mammography report', 'Pap smear results', 'PSA test results'],
-        "<author_genetic>": ['BRCA1 mutation', 'BRCA2 mutation', 'APOE e4 allele', 'Factor V Leiden', 'Prothrombin mutation', 'MTHFR mutation',
+        "<author_medical_report>": ['Blood test results', 'Urine analysis', 'X-ray report', 'MRI scan', 'CT scan',
+                                    'Ultrasound report', 'ECG report',
+                                    'Echocardiogram', 'Biopsy results', 'Pathology report', 'Lab culture results',
+                                    'Genetic test results',
+                                    'Allergy test panel', 'Hormone levels', 'Cholesterol panel', 'Liver function tests',
+                                    'Kidney function tests',
+                                    'Thyroid function tests', 'Cardiac stress test', 'Pulmonary function test',
+                                    'Bone density scan',
+                                    'Colonoscopy report', 'Endoscopy report', 'Mammography report', 'Pap smear results',
+                                    'PSA test results'],
+        "<author_genetic>": ['BRCA1 mutation', 'BRCA2 mutation', 'APOE e4 allele', 'Factor V Leiden',
+                             'Prothrombin mutation', 'MTHFR mutation',
                              'HLA-B27 positive', 'Tay-Sachs carrier', 'Sickle cell trait', 'Hemochromatosis mutation',
-                             'Cystic fibrosis carrier', 'Huntington\'s disease gene', 'Lynch syndrome', 'Familial hypercholesterolemia'],
-        "<author_fertility>": ['Infertility', 'Polycystic ovary syndrome', 'Endometriosis', 'Male factor infertility', 'Ovulation disorders',
-                                'Tubal factor infertility', 'Unexplained infertility', 'Recurrent pregnancy loss',
-                                'Premature ovarian failure', 'Varicocele', 'Azoospermia'],
-        "<author_disability>": ['Visual impairment', 'Hearing impairment', 'Mobility impairment', 'Cognitive impairment', 'Speech impairment',
+                             'Cystic fibrosis carrier', 'Huntington\'s disease gene', 'Lynch syndrome',
+                             'Familial hypercholesterolemia'],
+        "<author_fertility>": ['Infertility', 'Polycystic ovary syndrome', 'Endometriosis', 'Male factor infertility',
+                               'Ovulation disorders',
+                               'Tubal factor infertility', 'Unexplained infertility', 'Recurrent pregnancy loss',
+                               'Premature ovarian failure', 'Varicocele', 'Azoospermia'],
+        "<author_disability>": ['Visual impairment', 'Hearing impairment', 'Mobility impairment',
+                                'Cognitive impairment', 'Speech impairment',
                                 'Learning disability', 'Autism spectrum disorder', 'Intellectual disability',
-                                'Chronic fatigue syndrome', 'Fibromyalgia', 'Multiple sclerosis', 'Spinal cord injury', 'Traumatic brain injury'],
-        "<author_addiction>": ['Alcohol dependency', 'Nicotine addiction', 'Opioid dependency', 'Cocaine addiction', 'Cannabis dependency',
-                               'Benzodiazepine dependency', 'Gambling addiction', 'Internet addiction', 'Food addiction',
+                                'Chronic fatigue syndrome', 'Fibromyalgia', 'Multiple sclerosis', 'Spinal cord injury',
+                                'Traumatic brain injury'],
+        "<author_addiction>": ['Alcohol dependency', 'Nicotine addiction', 'Opioid dependency', 'Cocaine addiction',
+                               'Cannabis dependency',
+                               'Benzodiazepine dependency', 'Gambling addiction', 'Internet addiction',
+                               'Food addiction',
                                'Prescription drug abuse', 'Stimulant abuse']
     }
-
-    keywords_map = {
-        'heart': 'cardiac',
-        'lung': 'pulmonary',
-        'diabetes': 'diabetes',
-        'thyroid': 'thyroid',
-        'arthritis': 'arthritis',
-        'stroke': 'stroke',
-        'kidney': 'kidney'
-    }
-
-    def choose_condition(text):
-        t = text.lower()
-        for kw, cat in keywords_map.items():
-            if kw in t:
-                filtered = [o for o in options["<author_clinical_condition>"] if cat in o.lower()]
-                if filtered:
-                    return random.choice(filtered)
-        return random.choice(options["<author_clinical_condition>"])
 
     processed = []
 
@@ -117,18 +158,16 @@ def make_dataset_coherent(filename: str, outputfile: str):
 
             try:
                 subs_dict = ast.literal_eval(row['final_substitutions_dict'])
-            except Exception as e:
+            except Exception:
                 subs_dict = {}
 
             placeholders = set(re.findall(r"<[^>]+>", text))
             for ph in placeholders:
                 if ph not in subs_dict or isinstance(subs_dict[ph], str) and subs_dict[ph].startswith('<'):
-                    if ph == "<author_clinical_condition>":
-                        value = choose_condition(text)
-                    else:
-                        value = random.choice(options.get(ph, ["N/A"]))
+                    value = random.choice(options.get(ph, ["N/A"]))
                     subs_dict[ph] = value
                 text = text.replace(ph, subs_dict[ph])
+
             processed.append({
                 'final_text': text,
                 'substitutions_dictionary': json.dumps(subs_dict, ensure_ascii=False)
@@ -138,7 +177,6 @@ def make_dataset_coherent(filename: str, outputfile: str):
             print(row)
             print("Errore: ", e)
             continue
-
 
     final_df = pd.DataFrame(processed)
     final_df.to_csv(outputfile, index=False)
