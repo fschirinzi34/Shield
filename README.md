@@ -20,3 +20,12 @@ Script utilizzato per mitigare gli errori prodotti dal modello LLAMA:8B in fase 
 
 
 ## ***NER***
+
+### base_config.cfg
+File di configurazione che definisce gli iperparametri, i percorsi dei dataset, le impostazioni di tokenizzazione e le opzioni di training necessarie per addestrare il modello NER
+
+### spacy-ner-spy.ipynb
+Script utilizzato per fare il training del modello NER
+
+### test-ner.ipynb
+Script utilizzato per testare il modello NER precedentemente addestrato, per verificarne le performance su un nuovo dataset di test
