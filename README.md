@@ -18,6 +18,51 @@ Script utilizzato per mitigare gli errori prodotti dal modello LLAMA:8B in fase 
 
 ## ***LLM***
 
+Nella cartella LLM sono contenuti i file python che permettono di addestrare e testare il modello LLM
+che riconosce la presenza o l'assenza di PHI in una porzione di testo
+
+```bash
+LLM/
+├── custom_libs_clinical_t5_base/
+│   ├── ClinicalT5_ModelTrainer.py
+│   ├── data_handler.py
+│   └── pii_data_loader.py
+├── testing_clinicalT5-base.py
+└── training_clinicalT5-base.py
+```
+
+### ClinicalT5_ModelTrainer.py
+Contiene i metodi di training, di testing e di inferenza per il modello ClinicalT5. In particolare è presente anche il metodo per il plotting della curva ROC in fase di test. 
+
+### data_handler.py
+Definisce la gestione dei dati nelle fasi di addestramento e di testing, in particolare caricamento, pulizia e split dei dataset
+
+### pii_data_loader.py
+Gestisce e tokenizza i dataset, da cui crea i DataLoader per il training.
+
+### training_clinicalT5-base.py
+Addestra il modello ClinicalT5 su un dataset contenente PHI e PII. Per l'utilizzo considerare le seguenti opzioni:
+- Strategia di training
+  - -b/--standard &emsp;train-validation-test split 
+  - -k/--kfold &emsp;&emsp;&nbsp;&nbsp;&nbsp;K-fold cross-validation
+  - -s/--strkfold &emsp;&nbsp;&nbsp;Stratified K-fold cross-validation
+- -n/--num_splits &emsp;&nbsp;&nbsp;&nbsp; Numero di splits
+- -e/--num_epochs &nbsp;&nbsp;&nbsp; Numero di epoche
+- --dataset &emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp; Path del dataset.
+
+Esempio
+
+```bash
+python3 training_clinicalT5-base.py -s -n 3 -e 5 --dataset datasets/training_dataset.csv --num_labels 2
+```
+
+
+### testing_clinicalT5-base.py
+Effettua il test del modello creato dall'addestramento. Per utilizzarlo:
+```bash
+python3 testing_clinicalT5-base.py
+```
+
 
 ## ***NER***
 
