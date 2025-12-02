@@ -43,9 +43,8 @@ Gestisce e tokenizza i dataset, da cui crea i DataLoader per il training.
 ### training_clinicalT5-base.py
 Addestra il modello ClinicalT5 su un dataset contenente PHI e PII. Per l'utilizzo considerare le seguenti opzioni:
 - Strategia di training
-  - -b/--standard &emsp;train-validation-test split 
-  - -k/--kfold &emsp;&emsp;&nbsp;&nbsp;&nbsp;K-fold cross-validation
-  - -s/--strkfold &emsp;&nbsp;&nbsp;Stratified K-fold cross-validation
+   -b/--standard &emsp;train-validation-test split 
+  
 - -n/--num_splits &emsp;&nbsp;&nbsp;&nbsp; Numero di splits
 - -e/--num_epochs &nbsp;&nbsp;&nbsp; Numero di epoche
 - --dataset &emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp; Path del dataset.
