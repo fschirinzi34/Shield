@@ -1,20 +1,20 @@
-# **Struttura codice**:
-Qui brevemente viene spiegata la struttura del codice presente in questo repository organizzato nelle cartelle Dataset, LLM e NER
+# **Code structure**:
+Here is a brief explanation of the code structure in this repository, organized into the Dataset, LLM, and NER folders:
 
 ## ***Dataset***
-In questa cartella è presente il codice relativo alla generazione del dataset di training, pulizia dello stesso e conversione da csv in formato json.
+This folder contains the code for generating the training dataset, cleaning it, and converting it from CSV to JSON format.
 
 ### No_PHI_Dataset_Generation.py
-Script utilizzato per creare un dataset sintetico di dialoghi medico-paziente NON contenente PHI (Protected health information).
+Script used to create a synthetic dataset of doctor-patient dialogues NOT containing PHI (Protected health information).
 
 ### PHI_Dataset_Generation.py
-Script utilizzato per creare un dataset sintetico di dialoghi medico-paziente contenente PHI.
+Script used to create a synthetic dataset of doctor-patient dialogues containing PHI.
 
 ### create_json.ipynb
-Script utilizzato per convertire il CSV creato in precedenza in un file JSON adatto all’addestramento del modello NER. Il file JSON presenta ogni esempio con il testo tokenizzato e un' etichettatura BIO corrispondente a ciascun token, così da rispettare il formato richiesto dal modello.
+This script was used to convert the previously created CSV file into a JSON file suitable for training the NER model. The resulting JSON contains tokenized text and a BIO label for each token, following the format required by the model.
 
 ### uniq_clean_dataset.py
-Script utilizzato per mitigare gli errori prodotti dal modello LLAMA:8B in fase di generazione del dataset
+Script used to mitigate errors produced by the LLAMA-8B model during dataset generation.
 
 ## ***LLM***
 
