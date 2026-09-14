@@ -3,7 +3,6 @@ import time
 import torch
 import torch.nn as nn
 from datetime import datetime
-import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from transformers import AutoTokenizer, T5ForSequenceClassification
 from transformers import AdamW

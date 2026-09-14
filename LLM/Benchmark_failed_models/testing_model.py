@@ -2,9 +2,9 @@ import torch
 import pandas as pd
 import os
 from datetime import datetime
-from custom_libs_clinical_t5_base.data_handler import DataHandler
-from custom_libs_clinical_t5_base.pii_data_loader import PIIDataLoader
-from custom_libs_clinical_t5_base.ClinicalT5_ModelTrainer import ClinicalT5_ModelTrainer
+from custom_libs_model.data_handler import DataHandler
+from custom_libs_model.pii_data_loader import PIIDataLoader
+from custom_libs_model.ModelTrainer import ModelTrainer
 
 
 ### Constants
@@ -59,7 +59,7 @@ def evaluation(device, num_labels=2):
     test_loader = data_loader.get_specific_dataloader('test')
 
     # Initialize ClinicalT5 model trainer (corretto il nome della classe)
-    model_trainer = ClinicalT5_ModelTrainer(
+    model_trainer = ModelTrainer(
         model_name=MODEL_NAME,
         save_folder=SAVE_FOLDER,
         device=device,

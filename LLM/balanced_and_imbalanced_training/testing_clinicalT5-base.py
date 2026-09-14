@@ -1,13 +1,9 @@
 from pathlib import Path
-import sys
 import csv
 import argparse
 import torch
 import pandas as pd
 import os
-from datetime import datetime
-
-from torch import seed
 
 from custom_libs_clinical_t5_base.data_handler import DataHandler
 from custom_libs_clinical_t5_base.pii_data_loader import PIIDataLoader

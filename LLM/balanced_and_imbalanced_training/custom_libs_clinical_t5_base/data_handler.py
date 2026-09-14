@@ -1,4 +1,3 @@
-from sklearn.model_selection import KFold, StratifiedKFold
 import pandas as pd
 
 class DataHandler:
@@ -15,7 +14,7 @@ class DataHandler:
 		self.test_size = test_size
 		self.n_splits = n_splits # Number of folds for cross-validation
 		self.seed = seed
-	
+
 	def load_data(self):
 		""" Load data from CSV file and perform basic preprocessing """
 
@@ -26,7 +25,7 @@ class DataHandler:
 		# Ensure Sentence column is treated as string
 		self.df_generated['Sentence'] = self.df_generated['Sentence'].astype(str)
 
-		self.df_temist = pd.read_csv(self.dataset_path + "zenodo_dataset.csv", encoding='utf-8', quotechar='"', skipinitialspace=True)
+		self.df_temist = pd.read_csv(self.dataset_path + "zenodo_dataset_final.csv", encoding='utf-8', quotechar='"', skipinitialspace=True)
 		print(
 			f"Columns number for TEMIST dataset:\t{self.df_temist.columns}")  # Display column names for verification
 
@@ -54,12 +53,10 @@ class DataHandler:
 
 		if dataset_type:
 			df = self.df_generated
+			df = df.sample(frac=1, random_state=self.seed).reset_index(drop=True)
+
 		else:
 			df = self.df_temist
-
-		# Shuffle the dataframe with fixed random state for reproducibility
-		df = df.sample(frac=1, random_state=self.seed).reset_index(drop=True)
-		print(self.seed)
 		
 		# Calculate split indices
 		total_size = len(df)
@@ -86,65 +83,3 @@ class DataHandler:
 		print("\n\n")
 		print(train_texts[:5])
 		return train_texts, train_labels, None, None, test_texts, test_labels
-
-	
-	def kfold_split_data(self):
-		""" Generate K-fold cross-validation splits using KFold """
-
-		# Initialize KFold with shuffling and fixed random state
-		kf = KFold(n_splits=self.n_splits, shuffle=True, random_state=123)
-		
-		# Convert dataframe columns to lists for easier indexing
-		sentences = self.df['Sentence'].tolist()
-		labels = self.df['Label'].tolist()
-		
-		# Generate each fold
-		for train_index, test_index in kf.split(sentences):
-			# Extract training data for current fold
-			train_texts = [sentences[i] for i in train_index]
-			train_labels = [labels[i] for i in train_index]
-			
-			# Extract test data for current fold
-			test_texts = [sentences[i] for i in test_index]
-			test_labels = [labels[i] for i in test_index]
-			
-			yield train_texts, train_labels, test_texts, test_labels
-	
-	def stratified_kfold_split_data(self):
-		""" Generate stratified K-fold cross-validation splits using StratifiedKFold """
-
-		# Initialize StratifiedKFold with shuffling and fixed random state
-		skf = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=123)
-		
-		# Convert dataframe columns to lists for easier indexing
-		sentences = self.df['Sentence'].tolist()
-		labels = self.df['Label'].tolist()
-		
-		# Generate each stratified fold
-		for train_index, test_index in skf.split(sentences, labels):
-			# Extract training data for current fold
-			train_texts = [sentences[i] for i in train_index]
-			train_labels = [labels[i] for i in train_index]
-			
-			# Extract test data for current fold
-			test_texts = [sentences[i] for i in test_index]
-			test_labels = [labels[i] for i in test_index]
-			
-			yield train_texts, train_labels, test_texts, test_labels
-	
-	def get_test_data(self):
-		""" Extract only the test portion of the data for final model evaluation """
-
-		# Shuffle the dataframe with fixed random state for reproducibility
-		self.df = self.df.sample(frac=1, random_state=123).reset_index(drop=True)
-		
-		# Calculate split indices (same logic as split_data method)
-		total_size = len(self.df)
-		train_end = int(self.train_size * total_size)
-		valid_end = train_end + int(self.valid_size * total_size)
-		
-		# Extract only test data (final portion after train and validation)
-		test_texts = self.df.iloc[valid_end:]['Sentence'].tolist()
-		test_labels = self.df.iloc[valid_end:]['Label'].tolist()
-		
-		return test_texts, test_labels

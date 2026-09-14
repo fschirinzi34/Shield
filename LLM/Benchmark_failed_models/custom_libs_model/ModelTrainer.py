@@ -4,11 +4,12 @@ import torch
 import torch.nn as nn
 from datetime import datetime
 import matplotlib.pyplot as plt
-from transformers import AutoTokenizer, T5ForSequenceClassification
+from transformers import AutoTokenizer, T5ForSequenceClassification, AutoModelForSequenceClassification
 from transformers import AdamW
+from transformers import get_linear_schedule_with_warmup
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, roc_curve, auc
 
-class ClinicalT5_ModelTrainer:
+class ModelTrainer:
     """ Trainer for ClinicalT5-base using T5ForSequenceClassification """
 
     def __init__(self, model_name, save_folder, device, weight_model_path=None, num_labels=2, num_epochs=3, lr=5e-5, loss_fn=None):
@@ -19,31 +20,37 @@ class ClinicalT5_ModelTrainer:
         self.save_folder = save_folder
         self.lr = lr
         self.num_labels = num_labels
-        
-        # Initialize tokenizer for ClinicalT5-base
+
+        if model_name=="Salesforce/codet5p-770m":
+            self.model = T5ForSequenceClassification.from_pretrained(
+                model_name,
+                num_labels=num_labels
+            )
+        else:
+            self.model = AutoModelForSequenceClassification.from_pretrained(
+                model_name,
+                num_labels=num_labels
+            )
+
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        
+
         # Initialize model ClinicalT5 for sequence classification
         # Use T5ForSequenceClassification with the specifiet labels number
         # Added from_flax=True in order to load Flax weights
-        self.model = T5ForSequenceClassification.from_pretrained(
-            model_name,
-            num_labels=num_labels
-        )
+
         if weight_model_path is not None:
             state_dict = torch.load(weight_model_path, map_location=self.device)
             self.model.load_state_dict(state_dict)
         else:
             # Initialize the optimizer
-            self.optim = torch.optim.Adam(self.model.parameters(), lr=lr)
-
+            self.optim = torch.optim.AdamW(self.model.parameters(), lr=lr)
 
         self.model.to(device)
         
         # Initialize list for metrics
         self.train_losses = []
         self.valid_accuracies = []
-        
+
         # Setting default loss function if not provided
         self.loss_fn = loss_fn if loss_fn is not None else nn.CrossEntropyLoss()
         
@@ -61,33 +68,56 @@ class ClinicalT5_ModelTrainer:
         """Return current timestamp for naming files"""
         return datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    def train(self, train_loader, valid_loader=None):
+    def train(self, train_loader, valid_loader=None, test_loader=None):
         """ Train the model on provided training data"""
-
+        perEpoch_test_results = []
+        lr_train_history = {}
         start_time = time.time()
         print(f"Starting training for {self.num_epochs} epochs...")
-        
+
+        # --- Scheduler con warm-up ---
+        total_steps = len(train_loader) * self.num_epochs
+        warmup_steps = int(0.1 * total_steps)  # 10% degli step totali come warm-up
+        scheduler = get_linear_schedule_with_warmup(
+            self.optim,
+            num_warmup_steps=warmup_steps,
+            num_training_steps=total_steps
+        )
+
         for epoch in range(self.num_epochs):
             # Set model in training mode
             self.model.train()
             batch_losses = []
+            lr_epoch_history = []
             start_time_for = time.time()
-            
+
             for batch_idx, batch in enumerate(train_loader):
-                
+
                 # Move batch data on device
                 input_ids = batch['input_ids'].to(self.device)
                 attention_mask = batch['attention_mask'].to(self.device)
                 labels = batch['labels'].to(self.device)
 
                 # Forward pass - now use directly T5ForSequenceClassification
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
+                if self.model_name=="microsoft/longcoder-base":
+                    global_attention_mask = torch.zeros_like(input_ids)
+                    global_attention_mask[:, 0] = 1  # attenzione globale sul primo token (CLS)
+
+                    outputs = self.model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        global_attention_mask=global_attention_mask,
+                        labels=labels
+                    )
+                else:
+                    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
                 loss = outputs.loss
 
                 # Backward pass and optimization
                 self.optim.zero_grad()
                 loss.backward()
                 self.optim.step()
+                scheduler.step()  # <-- unica riga da aggiungere qui
 
                 batch_losses.append(loss.item())
 
@@ -97,7 +127,9 @@ class ClinicalT5_ModelTrainer:
                     print(f'Epoch: {epoch+1:04d}/{self.num_epochs:04d} | '
                         f'Batch {batch_idx:04d}/{len(train_loader):04d} | '
                         f'Loss: {loss:.4f} | '
+                        f'LR: {scheduler.get_last_lr()[0]:.2e} | '
                         f'Time_batch: {iter_time:.4f} s | ')
+                    lr_epoch_history.append(scheduler.get_last_lr()[0])
 
             epoch_loss = sum(batch_losses) / len(batch_losses)
             self.train_losses.append(epoch_loss)
@@ -116,8 +148,21 @@ class ClinicalT5_ModelTrainer:
                     f'No validation step in this epoch.')
 
             print(f'Time elapsed: {(time.time() - start_time)/60:.2f} min')
+            #evaluate del modello
+            if test_loader is not None:
+                test_results = self.evaluate(test_loader)
+                #salvataggio dei risultati in nuovo elemento di una lista
+                perEpoch_test_results.append(test_results)
+
+            lr_train_history.update({ epoch : lr_epoch_history})
+
 
         print(f'Total Training Time: {(time.time() - start_time)/60:.2f} min')
+        # return dei risultati completi
+        if test_loader is not None:
+            return perEpoch_test_results, lr_train_history
+        else:
+            return None, lr_train_history
 
     def compute_accuracy(self, data_loader):
         """ Compute accuracy on the provided dataset"""
@@ -130,8 +175,18 @@ class ClinicalT5_ModelTrainer:
                 input_ids = batch['input_ids'].to(self.device)
                 attention_mask = batch['attention_mask'].to(self.device)
                 labels = batch['labels'].to(self.device)
+                if self.model_name=="microsoft/longcoder-base":
+                    global_attention_mask = torch.zeros_like(input_ids)
+                    global_attention_mask[:, 0] = 1  # attenzione globale sul primo token (CLS)
 
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
+                    outputs = self.model(
+                        input_ids=input_ids,
+                        attention_mask=attention_mask,
+                        global_attention_mask=global_attention_mask,
+                        #labels=labels
+                    )
+                else:
+                    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
                 _, predicted_labels = torch.max(outputs.logits, 1)
 
                 num_examples += labels.size(0)
@@ -207,7 +262,18 @@ class ClinicalT5_ModelTrainer:
                 attention_mask = batch['attention_mask'].to(self.device)
                 labels = batch['labels'].to(self.device)
 
-                outputs = self.model(input_ids=inputs, attention_mask=attention_mask)
+                if self.model_name=="microsoft/longcoder-base":
+                    global_attention_mask = torch.zeros_like(inputs)
+                    global_attention_mask[:, 0] = 1  # attenzione globale sul primo token (CLS)
+
+                    outputs = self.model(
+                        input_ids=inputs,
+                        attention_mask=attention_mask,
+                        global_attention_mask=global_attention_mask,
+                        #labels=labels
+                    )
+                else:
+                    outputs = self.model(input_ids=inputs, attention_mask=attention_mask)
                 logits = outputs.logits
 
                 loss = self.loss_fn(logits, labels)
@@ -249,7 +315,7 @@ class ClinicalT5_ModelTrainer:
                 plt.savefig(filepath, dpi=300, bbox_inches='tight')
                 print(f"Test ROC curve saved to: {filepath}")
             
-            plt.show()
+            #plt.show()
         else:
             auc_roc = None
 

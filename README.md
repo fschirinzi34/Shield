@@ -29,6 +29,13 @@ LLM/
 │   │   └── pii_data_loader.py
 │   ├── testing_clinicalT5-base.py
 │   └── training_clinicalT5-base.py
+├── Benchmark_failed_models/
+│   ├── custom_libs_model/
+│   │   ├── ModelTrainer.py
+│   │   ├── data_handler.py
+│   │   └── pii_data_loader.py
+│   ├── testing_model.py
+│   └── training_model.py
 └── balanced_and_imbalanced_training/
     ├── custom_libs_clinical_t5_base/
     │   ├── ClinicalT5_ModelTrainer.py
